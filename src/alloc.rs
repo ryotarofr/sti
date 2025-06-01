@@ -1,9 +1,7 @@
-use crate::mem::{NonNull, size_of, align_of};
+use crate::mem::{align_of, size_of, NonNull};
 use crate::num::ceil_to_multiple_pow2;
 
-
 pub use core::alloc::Layout;
-
 
 /// # safety:
 /// - if `A: Clone`, `realloc` and `free` must be valid on all clones.
@@ -28,8 +26,7 @@ pub unsafe trait Alloc {
             }
 
             return result;
-        }
-        else {
+        } else {
             return Some(dangling(layout));
         }
     }
@@ -44,7 +41,6 @@ pub unsafe trait Alloc {
     /// - `layout.size() > 0`
     ///
     unsafe fn alloc_nonzero(&self, layout: Layout) -> Option<NonNull<u8>>;
-
 
     /// frees an allocation.
     ///
@@ -63,7 +59,6 @@ pub unsafe trait Alloc {
         }
     }
 
-
     /// frees an allocation.
     ///
     /// - after the call, `ptr` is no longer a live allocation.
@@ -74,7 +69,6 @@ pub unsafe trait Alloc {
     /// - `layout.size() > 0`.
     ///
     unsafe fn free_nonzero(&self, ptr: NonNull<u8>, layout: Layout);
-
 
     /// attempts to resize an allocation.
     ///
@@ -90,11 +84,16 @@ pub unsafe trait Alloc {
     /// - `old_layout.align() == new_layout.align()`.
     ///
     #[inline]
-    unsafe fn try_realloc(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Result<(), ()> {
+    unsafe fn try_realloc(
+        &self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Result<(), ()> {
         debug_assert!(old_layout.align() == new_layout.align());
 
         if old_layout.size() == 0 || new_layout.size() == 0 {
-            return Err(())
+            return Err(());
         }
         unsafe { self.try_realloc_nonzero(ptr, old_layout, new_layout) }
     }
@@ -114,7 +113,12 @@ pub unsafe trait Alloc {
     /// - `new_layout.size() > 0`.
     ///
     #[inline]
-    unsafe fn try_realloc_nonzero(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Result<(), ()> {
+    unsafe fn try_realloc_nonzero(
+        &self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Result<(), ()> {
         debug_assert!(old_layout.align() == new_layout.align());
 
         let _ = (ptr, old_layout, new_layout);
@@ -139,20 +143,29 @@ pub unsafe trait Alloc {
     ///     - `old_layout` must be the active layout of the memory block.
     /// - `old_layout.align() == new_layout.align()`.
     ///
-    unsafe fn realloc(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Option<NonNull<u8>> {
+    unsafe fn realloc(
+        &self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Option<NonNull<u8>> {
         unsafe { default_realloc(self, ptr, old_layout, new_layout) }
     }
 }
 
 #[inline]
-pub unsafe fn default_realloc<A: Alloc + ?Sized>(alloc: &A, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Option<NonNull<u8>> {
+pub unsafe fn default_realloc<A: Alloc + ?Sized>(
+    alloc: &A,
+    ptr: NonNull<u8>,
+    old_layout: Layout,
+    new_layout: Layout,
+) -> Option<NonNull<u8>> {
     debug_assert_eq!(old_layout.align(), new_layout.align());
 
     // invariants upheld by the caller.
     if unsafe { alloc.try_realloc(ptr, old_layout, new_layout).is_ok() } {
         return Some(ptr);
-    }
-    else {
+    } else {
         let new_ptr = alloc.alloc(new_layout);
 
         if let Some(new_ptr) = new_ptr {
@@ -174,7 +187,6 @@ pub unsafe fn default_realloc<A: Alloc + ?Sized>(alloc: &A, ptr: NonNull<u8>, ol
     }
 }
 
-
 // safe: a clone of `&A` refers to the same `A`.
 unsafe impl<A: Alloc + ?Sized> Alloc for &A {
     #[inline(always)]
@@ -187,7 +199,6 @@ unsafe impl<A: Alloc + ?Sized> Alloc for &A {
         unsafe { A::alloc_nonzero(self, layout) }
     }
 
-
     #[inline(always)]
     unsafe fn free(&self, ptr: NonNull<u8>, layout: Layout) {
         unsafe { A::free(self, ptr, layout) }
@@ -198,24 +209,36 @@ unsafe impl<A: Alloc + ?Sized> Alloc for &A {
         unsafe { A::free_nonzero(self, ptr, layout) }
     }
 
-
     #[inline(always)]
-    unsafe fn try_realloc(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Result<(), ()> {
+    unsafe fn try_realloc(
+        &self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Result<(), ()> {
         unsafe { A::try_realloc(self, ptr, old_layout, new_layout) }
     }
 
     #[inline(always)]
-    unsafe fn try_realloc_nonzero(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Result<(), ()> {
+    unsafe fn try_realloc_nonzero(
+        &self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Result<(), ()> {
         unsafe { A::try_realloc_nonzero(self, ptr, old_layout, new_layout) }
     }
 
     #[inline(always)]
-    unsafe fn realloc(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Option<NonNull<u8>> {
+    unsafe fn realloc(
+        &self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Option<NonNull<u8>> {
         unsafe { A::realloc(self, ptr, old_layout, new_layout) }
     }
 }
-
-
 
 #[inline]
 pub fn dangling(layout: Layout) -> NonNull<u8> {
@@ -237,10 +260,12 @@ pub fn alloc_ptr<T>(alloc: &impl Alloc) -> Option<NonNull<T>> {
 #[inline]
 pub fn alloc_ptr_with_extra<T>(alloc: &impl Alloc, extra: usize) -> Option<NonNull<T>> {
     if let Some(size) = crate::mem::size_of::<T>().checked_add(extra) {
-    if let Ok(layout) = Layout::from_size_align(size, crate::mem::align_of::<T>()) {
-    if let Some(ptr) = alloc.alloc(layout) {
-        return Some(ptr.cast());
-    }}}
+        if let Ok(layout) = Layout::from_size_align(size, crate::mem::align_of::<T>()) {
+            if let Some(ptr) = alloc.alloc(layout) {
+                return Some(ptr.cast());
+            }
+        }
+    }
 
     crate::hint::cold();
     return None;
@@ -249,32 +274,43 @@ pub fn alloc_ptr_with_extra<T>(alloc: &impl Alloc, extra: usize) -> Option<NonNu
 #[inline]
 pub fn alloc_array<T>(alloc: &impl Alloc, len: usize) -> Option<NonNull<T>> {
     if let Ok(layout) = Layout::array::<T>(len) {
-    if let Some(ptr) = alloc.alloc(layout) {
-        return Some(ptr.cast());
-    }}
+        if let Some(ptr) = alloc.alloc(layout) {
+            return Some(ptr.cast());
+        }
+    }
 
     crate::hint::cold();
     return None;
 }
 
 #[inline]
-pub unsafe fn realloc_array<T>(alloc: &impl Alloc, ptr: NonNull<T>, old_len: usize, new_len: usize) -> Option<NonNull<T>> { unsafe {
-    let old_layout = Layout::array::<T>(old_len).unwrap_unchecked();
+pub unsafe fn realloc_array<T>(
+    alloc: &impl Alloc,
+    ptr: NonNull<T>,
+    old_len: usize,
+    new_len: usize,
+) -> Option<NonNull<T>> {
+    unsafe {
+        let old_layout = Layout::array::<T>(old_len).unwrap_unchecked();
 
-    if let Ok(new_layout) = Layout::array::<T>(new_len) {
-    if let Some(ptr) = alloc.realloc(ptr.cast(), old_layout, new_layout) {
-        return Some(ptr.cast());
-    }}
+        if let Ok(new_layout) = Layout::array::<T>(new_len) {
+            if let Some(ptr) = alloc.realloc(ptr.cast(), old_layout, new_layout) {
+                return Some(ptr.cast());
+            }
+        }
 
-    crate::hint::cold();
-    return None;
-}}
+        crate::hint::cold();
+        return None;
+    }
+}
 
 #[inline]
-pub unsafe fn free_array<T>(alloc: &impl Alloc, ptr: NonNull<T>, len: usize) { unsafe {
-    let layout = Layout::array::<T>(len).unwrap_unchecked();
-    alloc.free(ptr.cast(), layout);
-}}
+pub unsafe fn free_array<T>(alloc: &impl Alloc, ptr: NonNull<T>, len: usize) {
+    unsafe {
+        let layout = Layout::array::<T>(len).unwrap_unchecked();
+        alloc.free(ptr.cast(), layout);
+    }
+}
 
 #[inline]
 pub fn alloc_new<T>(alloc: &impl Alloc, value: T) -> Option<NonNull<T>> {
@@ -310,8 +346,6 @@ pub unsafe fn drop_and_free<T: ?Sized, A: Alloc>(alloc: &A, ptr: NonNull<T>) {
     }
 }
 
-
-
 #[inline]
 pub fn cat_join(a: Layout, b: Layout) -> Option<Layout> {
     let b_begin = ceil_to_multiple_pow2(a.size(), b.align());
@@ -323,41 +357,51 @@ pub fn cat_join(a: Layout, b: Layout) -> Option<Layout> {
 
 #[inline]
 pub unsafe fn cat_next<T, U>(base: *const T, len: usize) -> *const U {
-    unsafe { cat_next_bytes(base, len*size_of::<T>(), align_of::<U>()) }
+    unsafe { cat_next_bytes(base, len * size_of::<T>(), align_of::<U>()) }
 }
 
 #[inline]
-pub unsafe fn cat_next_bytes<T, U>(base: *const T, base_size: usize, next_align: usize) -> *const U {
+pub unsafe fn cat_next_bytes<T, U>(
+    base: *const T,
+    base_size: usize,
+    next_align: usize,
+) -> *const U {
     let result = ceil_to_multiple_pow2(base as usize + base_size, next_align);
-    #[cfg(miri)] {
+    #[cfg(miri)]
+    {
         // miri doesn't like int->ptr casts.
         let delta = result - base as usize;
         return unsafe { (base as *const u8).add(delta) as *const U };
     }
-    #[cfg(not(miri))] {
+    #[cfg(not(miri))]
+    {
         return result as *const U;
     }
 }
 
 #[inline]
 pub unsafe fn cat_next_mut<T, U>(base: *mut T, len: usize) -> *mut U {
-    unsafe { cat_next_mut_bytes(base, len*size_of::<T>(), align_of::<U>()) }
+    unsafe { cat_next_mut_bytes(base, len * size_of::<T>(), align_of::<U>()) }
 }
 
 #[inline]
-pub unsafe fn cat_next_mut_bytes<T, U>(base: *mut T, base_size: usize, next_align: usize) -> *mut U {
+pub unsafe fn cat_next_mut_bytes<T, U>(
+    base: *mut T,
+    base_size: usize,
+    next_align: usize,
+) -> *mut U {
     let result = ceil_to_multiple_pow2(base as usize + base_size, next_align);
-    #[cfg(miri)] {
+    #[cfg(miri)]
+    {
         // miri doesn't like int->ptr casts.
         let delta = result - base as usize;
         return unsafe { (base as *mut u8).add(delta) as *mut U };
     }
-    #[cfg(not(miri))] {
+    #[cfg(not(miri))]
+    {
         return result as *mut U;
     }
 }
-
-
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct GlobalAlloc;
@@ -365,9 +409,9 @@ pub struct GlobalAlloc;
 unsafe impl Sync for GlobalAlloc {}
 unsafe impl Send for GlobalAlloc {}
 
-#[cfg(target_os = "macos")]
+#[cfg(target_os = "linux")]
 mod libc {
-    #[link(name = "System")]
+    // #[link(name = "System")]
     extern "C" {
         pub fn malloc(size: usize) -> *mut u8;
         pub fn free(ptr: *mut u8);
@@ -376,7 +420,7 @@ mod libc {
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(target_os = "linux")]
 // safe: GlobalAlloc is zst.
 unsafe impl Alloc for GlobalAlloc {
     unsafe fn alloc_nonzero(&self, layout: Layout) -> Option<NonNull<u8>> {
@@ -384,8 +428,7 @@ unsafe impl Alloc for GlobalAlloc {
         unsafe {
             if layout.align() <= crate::mem::size_of::<usize>() {
                 NonNull::new(libc::malloc(layout.size()))
-            }
-            else {
+            } else {
                 NonNull::new(libc::aligned_alloc(layout.align(), layout.size()))
             }
         }
@@ -399,18 +442,22 @@ unsafe impl Alloc for GlobalAlloc {
         }
     }
 
-    unsafe fn realloc(&self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> Option<NonNull<u8>> {
+    unsafe fn realloc(
+        &self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_layout: Layout,
+    ) -> Option<NonNull<u8>> {
         debug_assert_eq!(old_layout.align(), new_layout.align());
         unsafe {
             if new_layout.align() <= crate::mem::size_of::<usize>()
-            && old_layout.size() > 0
-            && new_layout.size() > 0 {
+                && old_layout.size() > 0
+                && new_layout.size() > 0
+            {
                 return NonNull::new(libc::realloc(ptr.as_ptr(), new_layout.size()));
-            }
-            else {
+            } else {
                 return default_realloc(self, ptr, old_layout, new_layout);
             }
         }
     }
 }
-

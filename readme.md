@@ -3,6 +3,7 @@
 common algorithms & data structures for rust.
 
 highlights:
+
 - [allocator api](https://docs.rs/sti/latest/sti/alloc/trait.Alloc.html) and
   various data structures that support it (including `Vec`, `HashMap`, `Box`, `Rc`).
 - [arena allocation](https://docs.rs/sti/latest/sti/arena/struct.Arena.html) with thread
@@ -11,11 +12,21 @@ highlights:
   [index typed vecs](https://docs.rs/sti/latest/sti/keyed/struct.KVec.html).
 - [a slice reader](https://docs.rs/sti/latest/sti/reader/struct.Reader.html) for parsing.
 
-
 disclaimer:
+
 - even though most things are tested, you may still run into bugs.
 - the library is under active development and breaking changes are likely.
 
-
 [change-log](changelog.md)
 
+## build
+
+```bash
+cargo build --target riscv64gc-unknown-linux-gnu
+```
+
+## build bug
+
+```bash
+rustup toolchain uninstall stable && rustup toolchain install stable
+```

@@ -1,7 +1,6 @@
 pub use core::num::*;
 
-
-#[derive(Clone, Copy, PartialEq, Eq, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct NonMaxU32(NonZeroU32);
 
 impl NonMaxU32 {
@@ -17,6 +16,11 @@ impl NonMaxU32 {
     }
 
     #[inline(always)]
+    /// Creates a new `NonMaxU32` without checking if the value is valid.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `value != u32::MAX`, otherwise this will result in undefined behavior.
     pub const unsafe fn new_unck(value: u32) -> NonMaxU32 {
         unsafe { NonMaxU32(NonZeroU32::new_unchecked(!value)) }
     }
@@ -27,10 +31,17 @@ impl NonMaxU32 {
     }
 }
 
+impl crate::cmp::Ord for NonMaxU32 {
+    #[inline(always)]
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.get().cmp(&other.get())
+    }
+}
+
 impl crate::cmp::PartialOrd for NonMaxU32 {
     #[inline(always)]
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        self.get().partial_cmp(&other.get())
+        Some(self.cmp(other))
     }
 }
 
@@ -62,14 +73,11 @@ impl From<NonMaxU32> for usize {
     }
 }
 
-
 #[inline]
 pub const fn ceil_to_multiple_pow2(x: usize, n: usize) -> usize {
     debug_assert!(n.is_power_of_two());
-    (x + (n-1)) & !(n-1)
+    (x + (n - 1)) & !(n - 1)
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -88,4 +96,3 @@ mod tests {
         assert!(NonMaxU32::new(u32::MAX).is_none());
     }
 }
-

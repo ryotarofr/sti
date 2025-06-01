@@ -1,4 +1,3 @@
-
 #[cfg(asan)]
 mod target {
     use crate::ffi::c_void;
@@ -18,7 +17,6 @@ mod target {
         unsafe { __asan_unpoison_memory_region(addr as *const c_void, size) }
     }
 
-
     #[inline]
     pub fn poison_ptr<T>(ptr: *const T) {
         poison(ptr.cast(), crate::mem::size_of::<T>())
@@ -29,17 +27,15 @@ mod target {
         unpoison(ptr.cast(), crate::mem::size_of::<T>())
     }
 
-
     #[inline]
     pub fn poison_ptr_len<T>(ptr: *const T, len: usize) {
-        poison(ptr.cast(), crate::mem::size_of::<T>()*len)
+        poison(ptr.cast(), crate::mem::size_of::<T>() * len)
     }
 
     #[inline]
     pub fn unpoison_ptr_len<T>(ptr: *const T, len: usize) {
-        unpoison(ptr.cast(), crate::mem::size_of::<T>()*len)
+        unpoison(ptr.cast(), crate::mem::size_of::<T>() * len)
     }
-
 
     #[inline]
     pub fn poison_ref<T: ?Sized>(r: &T) {
@@ -61,20 +57,17 @@ mod target {
     #[inline(always)]
     pub fn unpoison(addr: *const u8, size: usize) {}
 
-
     #[inline(always)]
     pub fn poison_ptr<T>(ptr: *const T) {}
 
     #[inline(always)]
     pub fn unpoison_ptr<T>(ptr: *const T) {}
 
-
     #[inline(always)]
     pub fn poison_ptr_len<T>(ptr: *const T, len: usize) {}
 
     #[inline(always)]
     pub fn unpoison_ptr_len<T>(ptr: *const T, len: usize) {}
-
 
     #[inline(always)]
     pub fn poison_ref<T: ?Sized>(r: &T) {}
@@ -84,4 +77,3 @@ mod target {
 }
 
 pub use target::*;
-
